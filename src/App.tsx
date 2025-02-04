@@ -1,21 +1,21 @@
 import { Menu } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
 import { SidebarProvider } from "~/components/ui/sidebar";
 import { ChatSidebar } from "~/components/ChatSidebar";
 import { ChatMessage } from "~/components/ChatMessage";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { Textarea } from "./components/ui/textarea";
 
 type Message = {
   role: "user" | "assistant";
   content: string;
-}
+};
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // This would typically come from a state management solution or props
-  const chatHistory: Message[]  = [
+  const chatHistory: Message[] = [
     { role: "assistant", content: "Hello! How can I assist you today?" },
     { role: "user", content: "Can you explain what React is?" },
     {
@@ -54,10 +54,10 @@ export default function App() {
           </main>
           <footer className="border-t p-4">
             <form className="max-w-3xl mx-auto flex gap-2">
-              <Input
+              <Textarea
                 className="flex-1"
                 placeholder="Type your message here..."
-                type="text"
+                rows={5}
               />
               <Button type="submit">Send</Button>
             </form>
