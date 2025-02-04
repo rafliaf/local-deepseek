@@ -17,7 +17,7 @@ export const ChatMessage = (props: ChatMessageProps) => {
             : "bg-primary text-primary-foreground"
         }`}
       >
-        <p>{props.content}</p>
+        <p className="whitespace-pre-wrap">{props.content.trim()}</p>
       </div>
     </div>
   );

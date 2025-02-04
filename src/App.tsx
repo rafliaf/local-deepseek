@@ -1,9 +1,11 @@
 import { Menu } from "lucide-react";
+import ollama from "ollama";
+import { useState } from "react";
+import { ChatMessage } from "~/components/ChatMessage";
+import { ChatSidebar } from "~/components/ChatSidebar";
 import { Button } from "~/components/ui/button";
 import { SidebarProvider } from "~/components/ui/sidebar";
-import { ChatSidebar } from "~/components/ChatSidebar";
-import { ChatMessage } from "~/components/ChatMessage";
-import { useLayoutEffect, useRef, useState } from "react";
+import { ThoughtMessage } from "./components/ThoughtMessage";
 import { Textarea } from "./components/ui/textarea";
 
 type Message = {
@@ -12,7 +14,52 @@ type Message = {
 };
 
 export default function App() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const [thought, setThought] = useState("");
+  const [streamedMessage, setStreamedMessage] = useState("");
+
+  const handleSubmit = async () => {
+    const stream = await ollama.chat({
+      model: "deepseek-r1:1.5b",
+      messages: [
+        {
+          role: "user",
+          content:
+            "This is just a test message, return me a paragraph of placeholder text",
+        },
+      ],
+      stream: true,
+    });
+
+    let fullThought = "";
+
+    let outputMode: "think" | "response" = "think";
+
+    for await (const part of stream) {
+      if (outputMode === "think") {
+        if (
+          !(
+            part.message.content.includes("<think>") ||
+            part.message.content.includes("</think>")
+          )
+        ) {
+          fullThought += part.message.content;
+        }
+
+        setThought(fullThought);
+
+        if (part.message.content.includes("</think>")) {
+          outputMode = "response";
+        }
+      } else {
+        setStreamedMessage((prevMessage) => prevMessage + part.message.content);
+      }
+    }
+
+    const cleanThought = fullThought.replace(/<\/?think>/g, "");
+    setThought(cleanThought);
+  };
 
   // This would typically come from a state management solution or props
   const chatHistory: Message[] = [
@@ -26,7 +73,7 @@ export default function App() {
   ];
 
   return (
-    <SidebarProvider>
+    <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
       <div className="flex h-screen bg-background w-full">
         <ChatSidebar />
         <div className="flex flex-col flex-1">
@@ -50,17 +97,25 @@ export default function App() {
                   content={message.content}
                 />
               ))}
+
+              {thought && <ThoughtMessage thought={thought} />}
+
+              {streamedMessage && (
+                <ChatMessage role="assistant" content={streamedMessage} />
+              )}
             </div>
           </main>
           <footer className="border-t p-4">
-            <form className="max-w-3xl mx-auto flex gap-2">
+            <div className="max-w-3xl mx-auto flex gap-2">
               <Textarea
                 className="flex-1"
                 placeholder="Type your message here..."
                 rows={5}
               />
-              <Button type="submit">Send</Button>
-            </form>
+              <Button onClick={handleSubmit} type="button">
+                Send
+              </Button>
+            </div>
           </footer>
         </div>
       </div>
