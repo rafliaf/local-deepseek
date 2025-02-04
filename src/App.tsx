@@ -1,53 +1,69 @@
+import { Menu } from "lucide-react";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { SidebarProvider } from "~/components/ui/sidebar";
+import { ChatSidebar } from "~/components/ChatSidebar";
+import { ChatMessage } from "~/components/ChatMessage";
 import { useState } from "react";
-import { MessageCard } from "./components/MessageCard";
 
 type Message = {
-  role: "assistant" | "user";
+  role: "user" | "assistant";
   content: string;
-};
-
-function App() {
-  const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Hello! How can I assist you today?" },
-  ]);
-  const [input, setInput] = useState("");
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (input.trim()) {
-      setMessages([...messages, { role: "user", content: input }]);
-      setInput("");
-    }
-  };
-
-  return (
-    <div className="flex flex-col h-screen bg-gray-100 py-20">
-      <main className="flex-grow overflow-hidden">
-        <div className="max-w-3xl mx-auto h-full flex flex-col">
-          <div className="flex-grow overflow-y-auto p-4 my-4 flex flex-col">
-            {messages.map((message) => (
-              <MessageCard role={message.role} message={message.content} />
-            ))}
-          </div>
-          <form onSubmit={handleSubmit} className="flex items-center p-4">
-            <textarea
-              placeholder="Type your message here..."
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              className="flex-grow mr-2 p-4 border rounded-2xl border-gray-300"
-            />
-            <button
-              type="submit"
-              disabled={!input.trim()}
-              className="p-4 bg-blue-500 rounded-2xl text-white"
-            >
-              Send
-            </button>
-          </form>
-        </div>
-      </main>
-    </div>
-  );
 }
 
-export default App;
+export default function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // This would typically come from a state management solution or props
+  const chatHistory: Message[]  = [
+    { role: "assistant", content: "Hello! How can I assist you today?" },
+    { role: "user", content: "Can you explain what React is?" },
+    {
+      role: "assistant",
+      content:
+        "React is a popular JavaScript library for building user interfaces. It was developed by Facebook and is widely used for creating interactive, efficient, and reusable UI components. React uses a virtual DOM (Document Object Model) to improve performance by minimizing direct manipulation of the actual DOM. It also introduces JSX, a syntax extension that allows you to write HTML-like code within JavaScript.",
+    },
+  ];
+
+  return (
+    <SidebarProvider>
+      <div className="flex h-screen bg-background w-full">
+        <ChatSidebar />
+        <div className="flex flex-col flex-1">
+          <header className="flex items-center px-4 h-16 border-b">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu />
+            </Button>
+            <h1 className="text-xl font-bold ml-4">AI Chat Dashboard</h1>
+          </header>
+          <main className="flex-1 overflow-auto p-4 w-full">
+            <div className="mx-auto space-y-4 pb-20 max-w-screen-md">
+              {chatHistory.map((message, index) => (
+                <ChatMessage
+                  key={index}
+                  role={message.role}
+                  content={message.content}
+                />
+              ))}
+            </div>
+          </main>
+          <footer className="border-t p-4">
+            <form className="max-w-3xl mx-auto flex gap-2">
+              <Input
+                className="flex-1"
+                placeholder="Type your message here..."
+                type="text"
+              />
+              <Button type="submit">Send</Button>
+            </form>
+          </footer>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+}
