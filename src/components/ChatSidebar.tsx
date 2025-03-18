@@ -1,5 +1,5 @@
 import { Moon, Plus, Sun } from "lucide-react";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 import {
   SidebarContent,
@@ -13,19 +13,27 @@ import {
   SidebarMenuItem,
   Sidebar as SidebarPrimitive,
 } from "~/components/ui/sidebar";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "~/components/ui/dialog";
 import { useTheme } from "./ThemeProvider";
+import { Label } from "./ui/label";
+import { Input } from "./ui/input";
+import { db } from "~/lib/dexie";
+import {useLiveQuery} from 'dexie-react-hooks'
+import { Link, useLocation } from "react-router";
 
-const chatGroups = [
-  { id: "1", name: "React Basics" },
-  { id: "2", name: "AI Ethics" },
-  { id: "3", name: "Climate Change" },
-  { id: "4", name: "JavaScript Tips" },
-  { id: "5", name: "Machine Learning Intro" },
-];
 
 export const ChatSidebar = () => {
-  const [activeChat, setActiveChat] = useState<string | null>(null);
+  const [activeThread, setActiveThread] = useState('');
+
+  const [dialogIsOpen, setDialogIsOpen] = useState(false);
+  const [textInput, setTextInput] = useState('')
+
   const { setTheme, theme } = useTheme();
+
+  const location = useLocation()
+
+  // get query threads realtime
+  const threads = useLiveQuery(() => db.getAllThreads(), [])
 
   const handleToggleTheme = () => {
     if (theme === "dark") {
@@ -34,11 +42,54 @@ export const ChatSidebar = () => {
       setTheme("dark");
     }
   };
+  
+  const handleCreateThread = async () => {
+    const threadId = await db.createThread(textInput)
+
+    setDialogIsOpen(false)
+    setTextInput('')
+  }
+
+
+  useLayoutEffect(() => {
+    const actvieThreadId =location.pathname.split('/')[2];    
+    setActiveThread(actvieThreadId);
+  }, [location.pathname])
 
   return (
+    <>
+    {/* dialog after click button New chat */}
+    <Dialog open={dialogIsOpen} onOpenChange={setDialogIsOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Create new threat</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-1">
+            <Label htmlFor="thread-title">Thread title</Label>
+            <Input id="thread-title" value={textInput} onChange={(e) => {
+              setTextInput(e.target.value)
+            }}
+            placeholder="Your new thread title"
+            >
+
+            </Input>
+          </div>
+
+        </DialogHeader>
+
+        <DialogFooter>
+          <Button variant="secondary" onClick={() => setDialogIsOpen(false)}>Cancel</Button>
+          <Button onClick={handleCreateThread}>Create thread</Button>
+        </DialogFooter>
+
+      </DialogContent>
+    </Dialog>
+
     <SidebarPrimitive>
       <SidebarHeader>
-        <Button className="w-full justify-start" variant="ghost">
+        <Button onClick={() => setDialogIsOpen(true)} className="w-full justify-start" variant="ghost">
           <Plus className="mr-2 h-4 w-4" />
           New Chat
         </Button>
@@ -48,14 +99,13 @@ export const ChatSidebar = () => {
           <SidebarGroupContent>
             <SidebarGroupLabel>Recent Chats</SidebarGroupLabel>
             <SidebarMenu>
-              {chatGroups.map((chat) => (
-                <SidebarMenuItem key={chat.id}>
-                  <SidebarMenuButton
-                    onClick={() => setActiveChat(chat.id)}
-                    isActive={activeChat === chat.id}
-                  >
-                    {chat.name}
-                  </SidebarMenuButton>
+              {threads?.map((thread) => (
+                <SidebarMenuItem key={thread.id}>
+                  <Link to={`/thread/${thread.id }`}>
+                    <SidebarMenuButton isActive={thread.id === activeThread}>
+                      {thread.title}
+                    </SidebarMenuButton>
+                  </Link>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -74,5 +124,6 @@ export const ChatSidebar = () => {
         </Button>
       </SidebarFooter>
     </SidebarPrimitive>
+    </>
   );
 };
